@@ -2,7 +2,585 @@
     ViewData["Title"] = "Home Page";
 }
 
-<div class="text-center">
-    <h1 class="display-4">Welcome</h1>
-    <p>Learn about <a href="https://docs.microsoft.com/aspnet/core">building Web apps with ASP.NET Core</a>.</p>
+
+
+<div class="container min-vh-100">
+    <div class="row border py-2">
+        <div class="col d-flex justify-content-center align-items-center text-center">
+            <div class="mx-md-4">Filter By:</div>
+            <div id="filter" class="d-flex justify-content-around gap-1">
+                <button id="ward-filter" class="btn btn-light d-block rounded-0"></button>
+                <button id="clinician-filter" class="btn btn-light d-block rounded-0"></button>
+            </div>
+        </div>
+        <div class="col d-flex justify-content-center align-items-center text-center">
+            <div class="mx-md-4">Ward Selected:</div>
+            <div class="d-flex">
+                <form action="" class="">
+                    <div class="form-group">
+                        <select id="ward-select-option" class="form-select">
+                        </select>
+                    </div>
+                </form>
+            </div>
+        </div>
+        <div class="col d-flex justify-content-center align-items-center text-center">
+            <div class="mx-md-4">Clinician Reviewing:</div>
+            <div class="d-flex">
+                <span id="current-doctor" class="d-block border border-success px-4">Dr. Amani</span>
+            </div>
+        </div>
+    </div>
+    <div class="row border py-2 px-4">
+        <button class="btn btn-danger w-25" id="commit-all-patient-data">Commit All</button>
+    </div>
+    <div class="row border py-2">
+        <table class="table">
+            <thead>
+                <tr>
+                    <th class="">#</th>
+                    <th class="">Patient</th>
+                    <th class="">Review Time</th>
+                    <th class="">Exit Time</th>
+                    <th class="">Review Outcome</th>
+                    <th class="">Comment</th>
+                    <th class="">
+                        <div class="form-check">
+                        <label class="form-check-label" for="flexCheckDefault">
+                            Select All
+                        </label>
+                        <input class="form-check-input" type="checkbox" value="" id="flexCheckDefault">
+                        </div>                        
+                    </th>
+                    <th class=""></th>
+                </tr>
+            </thead>
+            <tbody id="patient-items">
+                <tr class="align-middle">
+                    <td>1</td>
+                    <td>Daniel, Dagger</td>
+                    <td>
+                        <input type="date" class="form-control" value="2023-07-16">
+                    </td>
+                    <td>
+                        <input type="date" class="form-control" value="2023-07-16">
+                    </td>
+                    <td>
+                        <select class="form-control">
+                            <option value="" class="">Follow up</option>
+                            <option value="" class="">Administer drip</option>
+                        </select>
+                    </td>
+                    <td>
+                        <button class="btn btn-light">Add Comment</button>
+                    </td>
+                    <td>
+                        <label for="form-check" class="">
+                            <input type="checkbox" class="form-check-input">
+                        </label>
+                    </td>
+                    <td>
+                        <button class="btn btn-primary">Submit</button>
+                    </td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
 </div>
+
+
+<dialog class="team-dialog" id="team-dialog">
+    <div class="row border-bottom border-1 border-success mx-3 py-2">
+        <div class="lead" id="comment-title">Add Comment</div>
+    </div>
+    <form id="comment-form" class="row p-3" >
+            <div class="form-group mb-3 d-none">
+                <input type="text" class="form-control col-12" id="patient-id" placeholder="">
+            </div>
+            <div class="form-group mb-3">
+                <textarea class="form-control col-12" id="patient-item-comment" cols="30" rows="2"></textarea>
+            </div>
+            <div class="form-group d-flex justify-content-between">
+                <button class="btn btn-warning col-5" id="comment-cancel">Cancel</button>
+                <button class="btn btn-success col-5" id="comment-add">Add</button>
+            </div>
+    </form>
+
+</dialog>
+
+
+
+@section Scripts {
+    <script type="text/javascript">
+        $(document).ready(async function () {
+            /*
+                1. 
+            */
+
+            /* Declarations */
+            let messageLabel = "";
+
+            const commentDialog = ".team-dialog";
+            //const dialogForm = ".dialog-form";
+            const commitAllDataBtnIdentifier = "#commit-all-patient-data";
+            const tableBodyIdentitfier = "#patient-items";
+            const allCheckInputIdentifier = "#flexCheckDefault";
+            const patientItemIdentifiers = { 
+                tr: ".patient-item",
+                reviewTime: ".patient-item-review-time",
+                exitTime: ".patient-item-exit-time",
+                reviewOutcome: ".review-outcome",
+                comment: ".patient-item-comment",
+                checked: ".patient-item-checked",
+                submitBtn: ".patient-item-btn"
+            };
+
+            const postPatientPayload = { 
+                patientId: 0,
+                reviewOutcomId: 0,
+                comment: "",
+                reviewTime: null,
+                exitTime: null,
+            };
+
+            const commentFormSelectors = {
+                commentTitle: "#comment-title",
+                formPatientId: "#patient-id",
+                commentCancel: "#comment-cancel",
+                commentAdd: "#comment-add",
+                dialogCommentForm: "#comment-form",
+                commentDialog: "dialog",
+                commentText: "#patient-item-comment"
+            };
+            const defaultComment = { patientId: 0, text: "" };
+
+
+            let filterElement = $("#filter");
+            let wardFilterBtn = $("#ward-filter");
+            let clinicianFilterBtn = $("#clinician-filter");
+            let wardSelectElement = $("#ward-select-option");
+            let currentDoctorElement = $("#current-doctor");
+
+            let setupData = {};
+            let currentFilter = "";
+
+            /* Actions */
+            await loadSetupData();
+
+            wardFilterBtn.click(async function(){
+                wardSelectElement.attr("disabled", false);
+                 $(this).removeClass("btn-light").addClass("btn-success");
+                 currentFilter = $(this).text();
+                 clinicianFilterBtn.removeClass("btn-success").addClass("btn-light");
+
+            });
+
+            clinicianFilterBtn.click(async function(){
+                @* var id = $(this).data("id");
+                await UploadConfirmation(id, true); *@
+
+                wardFilterBtn.removeClass("btn-success").addClass("btn-light");
+                wardSelectElement.attr("disabled", true);
+                $(this).removeClass("btn-light").addClass("btn-success");
+                currentFilter = "";
+
+            });
+
+            wardSelectElement.change( async function(event){
+               /*
+                   1. maker api call to GetPatients(doctorId, dutyTypeId, wardId );
+                   2. use this to populate the table 
+               */
+
+               let { userId, dutyTypeId} = setupData.doctor;
+               let [wardVal, wardText] = appJS.getSelectedValueAndText(this);
+               console.log({ wardVal, wardText });
+               let wardId = parseInt(wardVal);
+
+               await getPatients(userId, dutyTypeId, wardId);
+               await popuatePatientTable();
+
+            });
+
+            $(allCheckInputIdentifier).change(toggleAllPatientsCheckInput);
+
+            $(commitAllDataBtnIdentifier).click(handlePatientItemsCommit);
+
+            $(commentFormSelectors.commentCancel).click(function(evt){
+                evt.preventDefault();
+                $(commentFormSelectors.dialogCommentForm)[0].reset();
+                $(commentFormSelectors.commentDialog)[0].close();
+            });
+
+            $(commentFormSelectors.commentAdd).click(async function(evt){
+                evt.preventDefault();
+
+                let targetComment = { ...defaultComment };
+                let commentForm = $(commentFormSelectors.dialogCommentForm);
+                let patientIdString = $(commentFormSelectors.formPatientId).data("patient-id");
+                targetComment.text = $(commentFormSelectors.commentText).val();
+                
+                targetComment.patientId = parseInt(patientIdString);
+                let patientItem = setupData.patients.find(x =>x.patientId === targetComment.patientId);
+
+                //appJS.appAlert(targetComment);
+                setupData.comments = setupData.comments.filter(x =>x.patientId !==  targetComment.patientId);
+                setupData.comments.push(targetComment);
+
+                messageLabel = `Added comment for ${patientItem.lastName}, ${patientItem.firstName}`;
+                console.log({ comments: setupData.comments });
+                appJS.displaySuccess({ message: messageLabel, title: "Doctor's Comment" }); 
+
+                $(commentFormSelectors.dialogCommentForm)[0].reset();
+                $(commentFormSelectors.commentDialog)[0].close();
+
+            });
+
+
+
+            /* implementations */
+
+              async function loadSetupData(){
+                messageLabel = "Loading Setup Data";
+
+                var options = appJS.makeApiCallDefaultOption();
+                await appJS.setSpinnerPromise(true);
+                var url = '@Url.Action("SetupData", "Home")';
+                var res = await appJS.makeApiCall(url, options);
+
+                appJS.setSpinnerPromise(false, 1000);
+                if(res.data.status){
+                    setupData = {...res.data.data[0], patients: [], comments: []};
+                    //await getPatients(1, 1, 1);
+                    console.log({ setupData });
+                    populateSetupData();
+                    await loadPatients();
+                }
+                else {
+                     appJS.displayError({ message: `Error ${messageLabel}`, title: messageLabel }); 
+                }
+
+            }
+
+            async function loadPatients(){
+                //appJS.appAlert(`currentFilter = ${currentFilter}`);
+                let wardId = null;
+                let { userId, dutyTypeId } = setupData.doctor;
+                if(currentFilter === 'Ward'){
+                    let [ wardIdVal, text ] = appJS.getSelectedValueAndText(wardSelectElement)
+                    //appJS.appAlert(`Ward Selected = ${text} WardId = ${wardIdVal}`);
+                    wardId = parseInt(wardIdVal);
+                    console.log({ doctorId : setupData.doctor.userId, dutyTypeId: setupData.doctor.dutyTypeId, wardId: wardId });
+                }
+                await getPatients(userId, dutyTypeId, wardId);
+            }
+
+            function setupFilterElements(){
+                var dutyTypes = setupData.dutyTypes;
+                var ward = dutyTypes.find(x => x.name === 'Ward');
+                wardFilterBtn.text(ward.name);
+                wardFilterBtn.removeClass("btn-light").addClass("btn-success");
+                currentFilter = ward.name;
+
+                var clinician = dutyTypes.find(x => x.name !== 'Ward');
+                clinicianFilterBtn.text(clinician.name);
+            }
+            function setupWardElements(){
+                const wards = setupData.wards;
+                const dataChoices = wards.map(item =>({ label: item.name, labelValue: item.wardId.toString()}) ) ;
+                const selector = "#ward-select-option";
+                //const defaultOption = "Select a Team"; 
+                $(selector).empty();                   
+                appJS.populateSelect(dataChoices, selector, null);
+            }
+            function setupDoctorElement(){
+                let doctorsName = `Dr. ${setupData.doctor.lastName}, ${setupData.doctor.firstName}`;
+                currentDoctorElement.text(doctorsName);
+            }
+
+            function populateSetupData(){
+                setupFilterElements();
+                setupWardElements();
+                setupDoctorElement();
+            }
+
+            async function getPatients(doctorId, dutyTypeId, wardId = null){
+                messageLabel = "Fetching Patient Data";
+
+                var options = appJS.makeApiCallDefaultOption();
+                await appJS.setSpinnerPromise(true);
+                var url = '@Url.Action("DoctorsPatient", "Home")' + `/${doctorId}/${dutyTypeId}/${wardId}`;
+                console.log({ url});
+                var res = await appJS.makeApiCall(url, options);
+
+                appJS.setSpinnerPromise(false, 1000);
+                if(res.data.status){
+                    let data = res.data.data;
+                    console.log({ data });
+                    setupData.patients = data ;
+                    popuatePatientTable();
+                }
+                else {
+                     appJS.displayError({ message: `Error ${messageLabel}`, title: messageLabel }); 
+
+                }
+
+            }
+
+            async function popuatePatientTable(){
+
+                const patientData = setupData.patients;
+                let tableBody = "";
+                let setupChildren = false;
+
+                if(patientData && patientData.length > 0)
+                {
+                    const currentDate = appJS.getDisplayDate(new Date(), false);
+                    patientData.map((patient, index) =>{
+                        tableBody += `
+                        <tr class="align-middle patient-item" data-patientid="${patient.patientId}">
+                            <td>${index + 1}</td>
+                            <td>${patient.lastName}, ${patient.firstName}</td>
+                            <td>
+                                <input type="date" class="form-control patient-item-review-time" value="${currentDate}">
+                            </td>
+                            <td>
+                                <input type="date" class="form-control patient-item-exit-time" value="">
+                            </td>
+                            <td>
+                                <select class="form-control review-outcome" id="">
+                                </select>
+                            </td>
+                            <td>
+                                <button class="btn btn-light patient-item-comment">Add Comment</button>
+                            </td>
+                            <td>
+                                <label for="form-check" class="">
+                                    <input type="checkbox" class="form-check-input patient-item-checked">
+                                </label>
+                            </td>
+                            <td>
+                                <button class="btn btn-primary patient-item-btn">Submit</button>
+                            </td>
+                        </tr>              
+                        `;
+
+                    });
+                    setupChildren = true;
+
+                }else{
+
+                    tableBody = `
+                    <tr>
+                        <td class="lead text-danger text-center">No Patient(s)</td>
+                    </tr>`;
+
+                }
+
+               await displayAndSetupTableBody(tableBody, setupChildren);
+
+            }
+
+            async function displayAndSetupTableBody(tableBody, setupChildren = false){
+                $(tableBodyIdentitfier).html(tableBody);
+                if(setupChildren){
+                    setupPatientItemBtn();
+                    setupPatientItemReviewOutcomeOptions();
+                    await setupAllPatientItemComment();
+
+                }
+            }
+
+
+            function setupPatientItemBtn(){
+                /* add a click handler to submit this patient items data ... */
+                const patientSubmitBtns = $(patientItemIdentifiers.submitBtn);
+                for(let i = 0; i < patientSubmitBtns.length; i++){
+                    patientSubmitBtns[i].onclick = handlePatientDataSubmit;
+                }               
+            }
+
+            function setupPatientItemReviewOutcomeOptions(){
+                 /* populate all review outcome options for each patient */
+
+                const reviewOutcomes = setupData.reviewOutcomes;
+                if(reviewOutcomes.length){
+                    let options = reviewOutcomes.map(item =>({
+                        label: item.text, labelValue: item.reviewOutcomeId
+                    }));
+
+                    //get all patients review outcomes 
+                    let patientsReviewOutcomeTags = $(patientItemIdentifiers.reviewOutcome);
+
+                    if(patientsReviewOutcomeTags.length > 0){
+                        patientsReviewOutcomeTags.map(revItemElem => {
+                            appJS.populateSelect(options, patientsReviewOutcomeTags[revItemElem], null);
+                        })
+                    }
+
+                }
+
+            }
+            function setupAllPatientItemComment(){
+                const pCommentBtns = $(patientItemIdentifiers.comment);
+                for(let i = 0; i < pCommentBtns.length; i++){
+                    pCommentBtns[i].onclick = handlePatientItemCommentClick;
+                }               
+
+
+            }
+            
+            function toggleAllPatientsCheckInput(event){
+                 /* 
+                    1. get the value of the select all checks 
+                    2. set all patient checks to this value 
+                  */
+                let allCheckInput = $(allCheckInputIdentifier);
+                let allCheckInputValue = allCheckInput.prop("checked");
+                let allPatientCheckInputs = $(`${patientItemIdentifiers.tr} ${patientItemIdentifiers.checked}`);
+                if(allPatientCheckInputs.length > 0){
+                    allPatientCheckInputs.map(patientCheckbox =>{
+                        $(allPatientCheckInputs[patientCheckbox]).prop("checked", allCheckInputValue);
+                    });
+                }
+            }
+
+            async function handlePatientItemsCommit(){
+                 /* 
+                    1. based on checkinput of true
+                    2. get all patients checkinputs 
+                    3. filter by checkinputs with true value i.e checked 
+                    4. foreach checkinput 
+                        a. get closest patientItemIdentifiers.tr element
+                        b. get patientItem submitBtn
+                        c. let patientPayload =  getPatientItemTrData(pSubmitElem);
+                        d. add patientPayload to payloadCollection 
+                    5. await postPatientItemData([patientPayload]);
+
+                  */
+
+                  messageLabel = "Commit all Patient Data";
+
+                  let allCheckInputs = $(patientItemIdentifiers.checked);
+                  if(allCheckInputs.length > 0){
+
+                     let checkedPatientSubmitBtnCollection = allCheckInputs.map(checkInput =>{
+                        if(checkInput.prop("checked")){
+                            let patientTrTag = checkInput.closest(patientItemIdentifiers.tr);
+                            let pSubmtBtn = patientTrTag.find(patientItemIdentifiers.submitBtn);
+                            //checkedPatientSubmitBtnCollection.push(pSubmitBtn);
+                            return pSubmitBtn;
+                        }
+                     });
+
+                     if(checkedPatientSubmitBtnCollection.length > 0){
+
+                        let pPayloads = checkedPatientSubmitBtnCollection.map(async pItemSubmitBtn =>{
+                            let payload = await handlePatientDataSubmit(pItemSubmitBtn);
+                            return payload;
+                        });
+
+                        await postPatientItemData(pPayloads);
+
+                     }else{
+                        appJS.displayError({ message: `No Patient checkbox marked as Completed!`, title: messageLabel }); 
+                     }
+                  }
+            }
+
+
+
+            async function handlePatientDataSubmit(event){
+                event.preventDefault();
+                let pSubmitElem = $(this);
+                let patientPayload =  getPatientItemTrData(pSubmitElem);
+
+                await postPatientItemData([patientPayload]);
+
+            }
+            async function handlePatientItemCommentClick(event){
+                 /* 
+                    1. onclick comment btn, add data props 
+                        a. patientId
+                    2. form should have 
+                        a. text input id="patient-comment-by-doctor";
+                        b. a cancel btn to close dialog 
+                        c. an add btn to add text to setupData.comment list 
+                    3. open dialog
+                  */
+
+                let patientTrElem = $(this).closest(patientItemIdentifiers.tr);
+                let patientId = parseInt(patientTrElem.data("patientid"));
+                let patientComment = setupData.patients.find(x => x.patientId === patientId);
+                let commentTitle = `Comment for <span class="text-danger fw-bold">${patientComment.lastName}, ${patientComment.firstName}</span>`;
+
+                $(commentFormSelectors.formPatientId).data("patient-id", patientId);
+
+                $(commentFormSelectors.commentTitle).html(commentTitle);
+                $(commentFormSelectors.commentDialog)[0].showModal();
+
+
+            }
+
+            function getPatientItemTrData(btnElem){
+                let btnTrParent = btnElem.closest(patientItemIdentifiers.tr);
+
+                let trData = { ...postPatientPayload };
+
+                trData.patientId = parseInt(btnTrParent.data("patientid"));
+
+                let pReviewTimeInput = btnTrParent.find(patientItemIdentifiers.reviewTime);
+                trData.reviewTime = pReviewTimeInput.val();
+
+                let pExitTimeInput = btnTrParent.find(patientItemIdentifiers.exitTime);
+                trData.exitTime = pExitTimeInput.val();
+
+                let pCheckedInput = btnTrParent.find(patientItemIdentifiers.checked);
+                trData.checked = pCheckedInput.val();
+
+                var pComment =  setupData.comments.length && setupData.comments.find(x =>x.patientId === trData.patientId);
+                if(pComment) trData.comment = pComment.text;
+
+                let pReviewOutcomeSelect = btnTrParent.find(patientItemIdentifiers.reviewOutcome);
+                let [val, text ] = appJS.getSelectedValueAndText(pReviewOutcomeSelect);
+                trData.reviewOutcomId = parseInt(val);
+
+
+                console.log({ trData });
+                return trData;
+
+            }
+
+            async function postPatientItemData(postPayload){
+                messageLabel = `Submitting ${postPayload.length} Data`;
+
+                var options = appJS.makeApiCallDefaultOption();
+                options.method = "POST";
+                options.body = JSON.stringify(postPayload);
+
+                await appJS.setSpinnerPromise(true);
+                var url = '@Url.Action("Patient", "Home")';
+                //console.log({ url});
+                var res = await appJS.makeApiCall(url, options);
+
+                appJS.setSpinnerPromise(false, 1000);
+                if(res.data.status){
+                    let data = res.data.data;
+                    console.log({ data });
+                    //setupData.patients = data ;
+                    //popuatePatientTable();
+                }
+                else {
+                     appJS.displayError({ message: `Error ${messageLabel}`, title: messageLabel }); 
+
+                }
+
+            }
+
+
+
+
+
+        });
+    </script>
+}

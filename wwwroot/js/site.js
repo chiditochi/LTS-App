@@ -11,13 +11,17 @@ const appJS = {
     disableBtn: function(selector, disable=true){
       $(selector).attr("disabled", disable)
     },
+    getSelectedValueAndText: function (jqueryThis) {
+      var selected = $(jqueryThis).find("option:selected");
+      return [selected.val(), selected.text()];
+    },
     getSelectedOption: function (targetSelector) {
       var selectedValue = $(`${targetSelector} option:selected`).val();
       return selectedValue;
     },
     populateSelect: function (dataChoices, selectSelector, defaultOption = null) {
       /*
-          data = [{ label: 'label', labelValue = '0'}, { label: 'label', labelValue = '1'}]
+          data = [{ label: 'label', labelValue: '0'}, { label: 'label', labelValue = '1'}]
       */
       if (defaultOption != null)
         dataChoices.unshift({ label: defaultOption, labelValue: "0" });
@@ -30,7 +34,14 @@ const appJS = {
           choice.label +
           "</option>";
       }
-      $(selectSelector).append(selectHTML);
+      if(typeof selectSelector === 'string'){
+        $(selectSelector).append(selectHTML);
+      }else {
+        $(selectSelector).append(selectHTML);
+
+      }
+
+
     },
     setSpinner: function (display) {
       if (display) {
@@ -76,14 +87,14 @@ const appJS = {
     formatIndex: function (index) {
       return `<span class="text-center d-block text-danger">${index}</span>`;
     },
-    getDisplayDate: function (date) {
+    getDisplayDate: function (date, addTime = true) {
       var d = new Date(date);
       var y = d.getFullYear();
       var m = (d.getMonth() + 1).toString().padStart(2, "0");
       var day = d.getDate().toString().padStart(2, "0");
       var hour = d.getHours();
       var minutes = d.getMinutes();
-      return `${y}-${m}-${day} ${hour}:${minutes}`;
+      return addTime ? `${y}-${m}-${day} ${hour}:${minutes}` :  `${y}-${m}-${day}`;
     },
     loadSearchInputHandler: function (
       selectSelector,

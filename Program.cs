@@ -1,7 +1,14 @@
+using Long_Term_Segregation.Services.Implementations;
+using Long_Term_Segregation.Services.interfaces;
+
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
 builder.Services.AddControllersWithViews();
+
+
+//register custom services 
+builder.Services.AddSingleton<IAppDataService, AppDataService>();
 
 var app = builder.Build();
 
