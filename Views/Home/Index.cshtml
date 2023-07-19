@@ -32,13 +32,13 @@
         </div>
     </div>
     <div class="row border py-2 px-4">
-        <button class="btn btn-danger w-25" id="commit-all-patient-data">Commit All</button>
+        <button class="btn btn-warning w-25 py-3" id="commit-all-patient-data">Commit All</button>
     </div>
     <div class="row border py-2">
         <table class="table">
             <thead>
                 <tr>
-                    <th class="">#</th>
+                    <th class="text-danger">#</th>
                     <th class="">Patient</th>
                     <th class="">Review Time</th>
                     <th class="">Exit Time</th>
@@ -56,36 +56,27 @@
                 </tr>
             </thead>
             <tbody id="patient-items">
-                <tr class="align-middle">
-                    <td>1</td>
-                    <td>Daniel, Dagger</td>
-                    <td>
-                        <input type="date" class="form-control" value="2023-07-16">
-                    </td>
-                    <td>
-                        <input type="date" class="form-control" value="2023-07-16">
-                    </td>
-                    <td>
-                        <select class="form-control">
-                            <option value="" class="">Follow up</option>
-                            <option value="" class="">Administer drip</option>
-                        </select>
-                    </td>
-                    <td>
-                        <button class="btn btn-light">Add Comment</button>
-                    </td>
-                    <td>
-                        <label for="form-check" class="">
-                            <input type="checkbox" class="form-check-input">
-                        </label>
-                    </td>
-                    <td>
-                        <button class="btn btn-primary">Submit</button>
-                    </td>
-                </tr>
             </tbody>
         </table>
     </div>
+    <!-- Pagination Section -->
+    <div class="row  d-flex justify-content-center" id="page-section">
+        <div class="d-flex flex-row justify-content-around align-items-center w-50">
+            <button class="btn text-warning" id="prev-page">
+                <i class="fa fa-chevron-left fa-3x"></i>
+            </button>
+            <div class="page-text">
+                <span class="text-danger">Page</span>
+                <span class="" id="current-page-text"></span>
+                <span class="text-danger">of</span>
+                <span class="" id="last-page-text"></span>
+            </div>
+            <button class="btn text-warning" id="next-page">
+                <i class="fa fa-chevron-right fa-3x"></i>
+            </button>
+        </div>
+    </div>
+
 </div>
 
 
@@ -154,6 +145,33 @@
             };
             const defaultComment = { patientId: 0, text: "" };
 
+            const pagePaginationIdentifiers = {
+                section: "#page-section",
+                prevBtn: "#prev-page",
+                nextBtn: "#next-page",
+                currentPageText: "#current-page-text",
+                lastPageText: "#last-page-text",
+            }
+
+            const defaultPagePaginationState = {
+                displayPagintation: false,
+                currentPageValue: 1,
+                lastPageValue: 0,
+                pageSize: 0,
+                prevPage: false,
+                nextPage: false
+            };
+
+            let pagePaginationState = {
+                displayPagintation: false,
+                currentPageValue: 1,
+                lastPageValue: 0,
+                pageSize: 0,
+                prevPage: false,
+                nextPage: false
+            };
+
+            let shouldShowPagination = false;
 
             let filterElement = $("#filter");
             let wardFilterBtn = $("#ward-filter");
@@ -172,6 +190,10 @@
                  $(this).removeClass("btn-light").addClass("btn-success");
                  currentFilter = $(this).text();
                  clinicianFilterBtn.removeClass("btn-success").addClass("btn-light");
+                 setPaginationDefaultOptions();
+
+                 //alert(currentFilter);
+                await loadPatients();
 
             });
 
@@ -183,6 +205,14 @@
                 wardSelectElement.attr("disabled", true);
                 $(this).removeClass("btn-light").addClass("btn-success");
                 currentFilter = "";
+                setPaginationDefaultOptions();
+
+                //alert("Query to get clinical patients");
+                 //alert(currentFilter);
+
+                await loadPatients();
+
+
 
             });
 
@@ -194,8 +224,9 @@
 
                let { userId, dutyTypeId} = setupData.doctor;
                let [wardVal, wardText] = appJS.getSelectedValueAndText(this);
-               console.log({ wardVal, wardText });
+               //console.log({ wardVal, wardText });
                let wardId = parseInt(wardVal);
+               setPaginationDefaultOptions();
 
                await getPatients(userId, dutyTypeId, wardId);
                await popuatePatientTable();
@@ -204,7 +235,7 @@
 
             $(allCheckInputIdentifier).change(toggleAllPatientsCheckInput);
 
-            $(commitAllDataBtnIdentifier).click(handlePatientItemsCommit);
+            $(commitAllDataBtnIdentifier).click(handleAllPatientsDataCommit);
 
             $(commentFormSelectors.commentCancel).click(function(evt){
                 evt.preventDefault();
@@ -228,11 +259,55 @@
                 setupData.comments.push(targetComment);
 
                 messageLabel = `Added comment for ${patientItem.lastName}, ${patientItem.firstName}`;
-                console.log({ comments: setupData.comments });
+                //console.log({ comments: setupData.comments });
                 appJS.displaySuccess({ message: messageLabel, title: "Doctor's Comment" }); 
 
                 $(commentFormSelectors.dialogCommentForm)[0].reset();
                 $(commentFormSelectors.commentDialog)[0].close();
+
+            });
+
+            $(pagePaginationIdentifiers.prevBtn).click(async function(evt){
+                /*
+                    1. set pagePaginationState.currentPageValue--
+                    2. set pagePaginationState.prevPage = true
+                    3. call handler
+                */
+                if(pagePaginationState.currentPageValue > 1){
+                    pagePaginationState.currentPageValue -=1;
+                    pagePaginationState.prevPage = true;
+                    await paginateHandler();
+                    //alert("process");
+                    $(pagePaginationIdentifiers.nextBtn).prop("disabled", false);
+                    $(pagePaginationIdentifiers.nextBtn).addClass("text-warning");
+                }
+                else{
+                    $(this).prop("disabled", true);
+                    $(this).removeClass("text-warning");
+
+                    //alert("disabled");
+                }
+                
+            });
+
+            $(pagePaginationIdentifiers.nextBtn).click(async function(evt){
+                /*
+                    1. set pagePaginationState.currentPageValue++
+                    2. call handler
+                */
+                if(pagePaginationState.currentPageValue < pagePaginationState.lastPageValue ){
+                    pagePaginationState.currentPageValue +=1;
+                    pagePaginationState.nextPage = true;
+                    await paginateHandler();
+                    //alert("process");
+                    $(pagePaginationIdentifiers.prevBtn).prop("disabled", false);
+                    $(pagePaginationIdentifiers.prevBtn).addClass("text-warning");
+                }
+                else{
+                    $(this).prop("disabled", true);
+                    $(this).removeClass("text-warning");
+                   // alert("disabled");
+                }
 
             });
 
@@ -243,6 +318,7 @@
               async function loadSetupData(){
                 messageLabel = "Loading Setup Data";
 
+                toggleCommitAllBtn(true);
                 var options = appJS.makeApiCallDefaultOption();
                 await appJS.setSpinnerPromise(true);
                 var url = '@Url.Action("SetupData", "Home")';
@@ -260,6 +336,7 @@
                      appJS.displayError({ message: `Error ${messageLabel}`, title: messageLabel }); 
                 }
 
+
             }
 
             async function loadPatients(){
@@ -270,7 +347,7 @@
                     let [ wardIdVal, text ] = appJS.getSelectedValueAndText(wardSelectElement)
                     //appJS.appAlert(`Ward Selected = ${text} WardId = ${wardIdVal}`);
                     wardId = parseInt(wardIdVal);
-                    console.log({ doctorId : setupData.doctor.userId, dutyTypeId: setupData.doctor.dutyTypeId, wardId: wardId });
+                    //console.log({ doctorId : setupData.doctor.userId, dutyTypeId: setupData.doctor.dutyTypeId, wardId: wardId });
                 }
                 await getPatients(userId, dutyTypeId, wardId);
             }
@@ -307,16 +384,23 @@
             async function getPatients(doctorId, dutyTypeId, wardId = null){
                 messageLabel = "Fetching Patient Data";
 
+                let page = null;
+                let { prevPage,  nextPage, currentPageValue} = pagePaginationState;
+                if(prevPage || nextPage) page = currentPageValue;
+
+
                 var options = appJS.makeApiCallDefaultOption();
                 await appJS.setSpinnerPromise(true);
-                var url = '@Url.Action("DoctorsPatient", "Home")' + `/${doctorId}/${dutyTypeId}/${wardId}`;
-                console.log({ url});
+                var url = '@Url.Action("DoctorsPatient", "Home")' + `/${doctorId}/${dutyTypeId}/${wardId}?page=${page}`;
+                //console.log({ url});
                 var res = await appJS.makeApiCall(url, options);
 
                 appJS.setSpinnerPromise(false, 1000);
                 if(res.data.status){
                     let data = res.data.data;
-                    console.log({ data });
+                    
+                    console.log({ data, page: res.data });
+                    setupPagination(res.data)
                     setupData.patients = data ;
                     popuatePatientTable();
                 }
@@ -339,7 +423,7 @@
                     patientData.map((patient, index) =>{
                         tableBody += `
                         <tr class="align-middle patient-item" data-patientid="${patient.patientId}">
-                            <td>${index + 1}</td>
+                            <td class="text-danger">${index + 1}</td>
                             <td>${patient.lastName}, ${patient.firstName}</td>
                             <td>
                                 <input type="date" class="form-control patient-item-review-time" value="${currentDate}">
@@ -356,7 +440,7 @@
                             </td>
                             <td>
                                 <label for="form-check" class="">
-                                    <input type="checkbox" class="form-check-input patient-item-checked">
+                                    <input type="checkbox" class="form-check-input patient-item-checked"> <span class="px-1" style="font-size: 0.8rem;">Completed</span>
                                 </label>
                             </td>
                             <td>
@@ -372,7 +456,7 @@
 
                     tableBody = `
                     <tr>
-                        <td class="lead text-danger text-center">No Patient(s)</td>
+                        <td colspan="8" class="lead text-danger text-center" style="font-size:2rem;">No Patient(s)</td>
                     </tr>`;
 
                 }
@@ -385,18 +469,29 @@
                 $(tableBodyIdentitfier).html(tableBody);
                 if(setupChildren){
                     setupPatientItemBtn();
+                    setupPatientBtnToggleByCheckbox();
                     setupPatientItemReviewOutcomeOptions();
                     await setupAllPatientItemComment();
 
                 }
             }
 
-
             function setupPatientItemBtn(){
                 /* add a click handler to submit this patient items data ... */
                 const patientSubmitBtns = $(patientItemIdentifiers.submitBtn);
                 for(let i = 0; i < patientSubmitBtns.length; i++){
-                    patientSubmitBtns[i].onclick = handlePatientDataSubmit;
+                    let btnItem = patientSubmitBtns[i];
+                    btnItem.onclick = handlePatientDataSubmit;
+                    $(btnItem).prop("disabled", true);
+                }               
+            }
+
+            function setupPatientBtnToggleByCheckbox(){
+                /* add a click handler to submit this patient items data ... */
+                const patientCheckboxes = $(patientItemIdentifiers.checked);
+                for(let i = 0; i < patientCheckboxes.length; i++){
+                    let checkboxItem = patientCheckboxes[i];
+                    checkboxItem.onclick = handlePatientBtnToggleByCheckbox;
                 }               
             }
 
@@ -426,26 +521,29 @@
                 for(let i = 0; i < pCommentBtns.length; i++){
                     pCommentBtns[i].onclick = handlePatientItemCommentClick;
                 }               
-
-
             }
             
             function toggleAllPatientsCheckInput(event){
                  /* 
                     1. get the value of the select all checks 
                     2. set all patient checks to this value 
+                    3. toggle patient's submitBtn based on checkboxValue
                   */
                 let allCheckInput = $(allCheckInputIdentifier);
                 let allCheckInputValue = allCheckInput.prop("checked");
                 let allPatientCheckInputs = $(`${patientItemIdentifiers.tr} ${patientItemIdentifiers.checked}`);
                 if(allPatientCheckInputs.length > 0){
                     allPatientCheckInputs.map(patientCheckbox =>{
-                        $(allPatientCheckInputs[patientCheckbox]).prop("checked", allCheckInputValue);
+                        let patientItemCheckbox = allPatientCheckInputs[patientCheckbox];
+                        //console.log({ patientCheckbox, allCheckInputValue });
+                        $(patientItemCheckbox).prop("checked", allCheckInputValue);
+                        doHandlePatientBtnToggleByCheckbox(patientItemCheckbox, allCheckInputValue);
+                        //$(patientItemCheckbox).click();
                     });
                 }
             }
 
-            async function handlePatientItemsCommit(){
+            async function handleAllPatientsDataCommit(){
                  /* 
                     1. based on checkinput of true
                     2. get all patients checkinputs 
@@ -464,20 +562,23 @@
                   let allCheckInputs = $(patientItemIdentifiers.checked);
                   if(allCheckInputs.length > 0){
 
-                     let checkedPatientSubmitBtnCollection = allCheckInputs.map(checkInput =>{
+                     let checkedPatientSubmitBtnCollection = [];
+                     allCheckInputs.map(checkInputIndex =>{
+                        checkInput = $(allCheckInputs[checkInputIndex]);
                         if(checkInput.prop("checked")){
                             let patientTrTag = checkInput.closest(patientItemIdentifiers.tr);
-                            let pSubmtBtn = patientTrTag.find(patientItemIdentifiers.submitBtn);
-                            //checkedPatientSubmitBtnCollection.push(pSubmitBtn);
+                            let pSubmitBtn = patientTrTag.find(patientItemIdentifiers.submitBtn);
+                            checkedPatientSubmitBtnCollection.push(pSubmitBtn);
                             return pSubmitBtn;
                         }
                      });
 
                      if(checkedPatientSubmitBtnCollection.length > 0){
 
-                        let pPayloads = checkedPatientSubmitBtnCollection.map(async pItemSubmitBtn =>{
-                            let payload = await handlePatientDataSubmit(pItemSubmitBtn);
-                            return payload;
+                        let pPayloads = [];
+                        checkedPatientSubmitBtnCollection.map(async pItemSubmitBtn =>{
+                            let payload = getPatientItemTrData(pItemSubmitBtn[0]);
+                            pPayloads.push(payload);
                         });
 
                         await postPatientItemData(pPayloads);
@@ -488,7 +589,27 @@
                   }
             }
 
+            function handlePatientBtnToggleByCheckbox(){
+                /*
+                    1. this handler is triggered by patient's checkbox value
+                    2. toggles patient's submit button based on checkbox value
+                    3. this is a checkbox event 
+                */
+                let patientCheckbox = $(this);
+                doHandlePatientBtnToggleByCheckbox(patientCheckbox);
+            }
 
+            function doHandlePatientBtnToggleByCheckbox(elem, currentValue = null){
+                let patientCheckbox = $(elem);
+                let patientCheckboxValue = currentValue === null ? patientCheckbox.prop("checked") : currentValue;
+
+                let patientTrElem = patientCheckbox.closest(patientItemIdentifiers.tr);
+                let patientSubmitBtn = patientTrElem.find(patientItemIdentifiers.submitBtn);
+                currentValue === null ? 
+                    $(patientSubmitBtn).prop("disabled", !patientCheckboxValue) : $(patientSubmitBtn).prop("disabled", !patientCheckboxValue);
+                setToggleCommitAllBtn();
+
+            }
 
             async function handlePatientDataSubmit(event){
                 event.preventDefault();
@@ -525,6 +646,8 @@
             function getPatientItemTrData(btnElem){
                 let btnTrParent = btnElem.closest(patientItemIdentifiers.tr);
 
+                btnTrParent = $(btnTrParent);
+
                 let trData = { ...postPatientPayload };
 
                 trData.patientId = parseInt(btnTrParent.data("patientid"));
@@ -546,13 +669,16 @@
                 trData.reviewOutcomId = parseInt(val);
 
 
-                console.log({ trData });
+                //console.log({ trData });
                 return trData;
 
             }
 
             async function postPatientItemData(postPayload){
                 messageLabel = `Submitting ${postPayload.length} Data`;
+
+                appJS.appAlert(postPayload);
+                return;
 
                 var options = appJS.makeApiCallDefaultOption();
                 options.method = "POST";
@@ -566,7 +692,7 @@
                 appJS.setSpinnerPromise(false, 1000);
                 if(res.data.status){
                     let data = res.data.data;
-                    console.log({ data });
+                    //console.log({ data });
                     //setupData.patients = data ;
                     //popuatePatientTable();
                 }
@@ -577,8 +703,64 @@
 
             }
 
+            function setToggleCommitAllBtn(){
+                /*
+                    1. set to true if two or more patients checkboxes are checked
+                    2. get all patient checboxes
+                    3. if atleast two patient checkboxes are checked set to true
+                    4. else set to false
 
+                */
+                let allPatientCheckboxes = $(patientItemIdentifiers.checked);
+                let toggleValue = false;
+                let checkedCheckboxCollection = [];
+                allPatientCheckboxes.map(mapIndex =>{
+                    let checkItem = allPatientCheckboxes[mapIndex];
+                    if($(checkItem).prop("checked")) checkedCheckboxCollection.push(checkItem);
+                });
 
+                (checkedCheckboxCollection.length > 1) ? toggleCommitAllBtn(false) : toggleCommitAllBtn(true);
+
+            }
+
+            /* utilities ... */
+            function toggleCommitAllBtn(state){
+                $(commitAllDataBtnIdentifier).prop("disabled", state);
+            }
+
+            function togglePageNavigation(){
+               pagePaginationState.displayPagintation ? $(pagePaginationIdentifiers.section).removeClass("d-none") : $(pagePaginationIdentifiers.section).addClass("d-none");
+            }
+
+            function setupPagination({ page, pageSize, totalPages}){
+                pagePaginationState.pageSize = pageSize;
+                pagePaginationState.currentPageValue = page;
+                pagePaginationState.lastPageValue = totalPages;
+                pagePaginationState.displayPagintation = (totalPages > 1) ? true : false;
+
+                displayPagination();
+            }
+
+            function displayPagination(){
+                if(pagePaginationState.displayPagintation){
+                    $(pagePaginationIdentifiers.currentPageText).text(pagePaginationState.currentPageValue);
+                    $(pagePaginationIdentifiers.lastPageText).text(pagePaginationState.lastPageValue);
+                }
+                else 
+                    togglePageNavigation();
+            }
+
+            async function paginateHandler(){
+                //appJS.appAlert(pagePaginationState);               
+                await loadPatients();
+            }
+
+            function setPaginationDefaultOptions(){
+                pagePaginationState = { ...defaultPagePaginationState };
+            }
+
+            async function getPaginatedData(){
+            }
 
 
         });

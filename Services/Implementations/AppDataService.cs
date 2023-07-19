@@ -4,6 +4,7 @@ using Bogus;
 using Long_Term_Segregation.Models;
 using Long_Term_Segregation.Models.DTOs;
 using Long_Term_Segregation.Services.interfaces;
+using Newtonsoft.Json;
 
 namespace Long_Term_Segregation.Services.Implementations;
 
@@ -12,6 +13,7 @@ public class AppDataService : IAppDataService
     private readonly ILogger<AppDataService> _logger;
     private readonly IConfiguration _config;
     private readonly int _seed;
+    private readonly int _pageSize;
 
     public AppDataService(
         ILogger<AppDataService> logger,
@@ -22,6 +24,7 @@ public class AppDataService : IAppDataService
         _config = configuration;
 
         _seed = 12345;
+        _pageSize = Convert.ToInt32(_config.GetSection("App:PageSize").Value);
 
     }
     public Task<AppResult<DutyTypeDTO>> GetDutyTypes()
@@ -52,7 +55,7 @@ public class AppDataService : IAppDataService
 
     }
 
-    public async Task<AppResult<PatientDTO>> GetPatients(long seed)
+    public async Task<AppResult<PatientDTO>> GetPatients(long seed, int page)
     {
         var result = new AppResult<PatientDTO>();
         int _customSeed = Convert.ToInt32(seed);
@@ -61,7 +64,8 @@ public class AppDataService : IAppDataService
         var wardRange = Enumerable.Range(1, wards.Data.Count).ToArray();
 
         Randomizer.Seed = new Random(_customSeed);
-        for (int i = 0; i < 20; i++)
+        var resultItem = new List<PatientDTO>();
+        for (int i = 0; i < 40; i++)
         {
             var item = new Faker<PatientDTO>()
                              .RuleFor(x => x.PatientId, t => ++i)
@@ -70,9 +74,18 @@ public class AppDataService : IAppDataService
                              .RuleFor(x => x.LastName, t => t.Person.LastName)
                              .RuleFor(x => x.CreatedAt, t => t.Date.Past(2))
                              .RuleFor(x => x.UpdatedAt, t => t.Date.Past(1));
-            result.Data.Add(item);
-
+            var itemResult = item.Generate();
+            resultItem.Add(itemResult);
         }
+        var skipCount = (page - 1) * _pageSize;
+        var resultItemData = resultItem.ToArray().Skip(skipCount).Take(_pageSize).ToList();
+        //_logger.LogInformation(JsonConvert.SerializeObject(resultItemData));
+        result.Data.AddRange(resultItemData);
+
+        result.TotalPages = Math.Ceiling(Convert.ToDouble(resultItem.Count / _pageSize));
+        result.Page = page;
+        result.PageSize = _pageSize;
+
         result.Status = true;
         result.Message = $"Patients Retrieved";
 
@@ -203,12 +216,14 @@ public class AppDataService : IAppDataService
         return result;
     }
 
-    public async Task<AppResult<PatientDTO>> GetPatients(long doctorsId, long dutyTypeId, long? wardId)
+    public async Task<AppResult<PatientDTO>> GetPatients(long doctorsId, long dutyTypeId, int page, long? wardId)
     {
         var result = new AppResult<PatientDTO>();
+
+        if(page < 1) page = 1;
         var seedValue = doctorsId + dutyTypeId;
         if (wardId != null) seedValue += wardId.Value;
-        result = await GetPatients(seedValue);
+        result = await GetPatients(seedValue, page);
         return result;
     }
     public async Task<AppResult<bool>> CommitPatients(IEnumerable<PatientCaseFileDTO> patientCasesFiles)

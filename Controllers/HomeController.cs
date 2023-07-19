@@ -38,9 +38,9 @@ public class HomeController : Controller
     }
 
     [HttpGet("/Home/DoctorsPatient/{DoctorId:long}/{DutyTypeId:long}/{WardId}")]
-    public async Task<IActionResult> GetDoctorsPatients(long DoctorsId, long DutyTypeId, long? WardId)
+    public async Task<IActionResult> GetDoctorsPatients(long DoctorId, long DutyTypeId, long? WardId,[FromQuery] int? page = 1)
     {
-        var result = await _appDataService.GetPatients(DoctorsId, DutyTypeId, WardId);
+        var result = await _appDataService.GetPatients(DoctorId, DutyTypeId, page.Value!, WardId);
         var data = JsonConvert.SerializeObject(result);
         //_logger.LogInformation(data);
         return Json(new { Data = result });
