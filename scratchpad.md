@@ -9,3 +9,29 @@ UpdatedAt	UpdatedAt	UpdatedAt	UpdatedAt		WardId?	ExitTime?	ExitTime?
 				CreatedAt			
 Ward			Doctor	UpdatedAt		CreatedAt	CreatedAt
 Clinician			Nurse			UpdatedAt	UpdatedAt
+
+
+
+### Todos
+	- add a db.json file 
+		- dutyType
+
+		- reviewOutCome
+		- ward
+		- userType
+		- patient (40)
+			- ward patient (20 * no-of-wards)
+			- clinician (20)
+	- on post keep a list 
+		- CompletedPatients 
+	- on get patients 
+		- exclude specified patients from the list 
+	- change Comment btn color upon adding comment 
+
+
+
+
+var jsonFilePath = Path.Combine(_wenv.ContentRootPath, "data.json");
+string jsonFile = File.ReadAllText(jsonFilePath);
+TestData jsonData = JsonConvert.DeserializeObject<TestData>(jsonFile)!;
+

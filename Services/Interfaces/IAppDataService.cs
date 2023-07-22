@@ -11,7 +11,7 @@ public interface IAppDataService
     public Task<AppResult<WardDTO>> GetWards();
     public Task<AppResult<UserTypeDTO>> GetUserTypes();
     public Task<AppResult<UserDTO>> GetUsers();
-    public Task<AppResult<PatientDTO>> GetPatients(long customSeed, int page);
+    //public Task<AppResult<PatientDTO>> GetPatients(long customSeed, int page);
 
     public Task<AppResult<SetupDataDTO>> GetSetupData();
     public Task<AppResult<PatientDTO>> GetPatients(long doctorsId, long dutyType, int page, long? wardId);

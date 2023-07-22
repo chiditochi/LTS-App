@@ -183,6 +183,12 @@ const appJS = {
   
       toastr.success(obj.message, obj.title);
     },
+    displayWarning: function (obj) {
+      const options = appJS.getToastrOptions();
+      toastr.options = options;
+  
+      toastr.warning(obj.message, obj.title);
+    },
   
     numberWithCommas: function (x, dp = 2) {
       return appJS

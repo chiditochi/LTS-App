@@ -53,10 +53,3 @@ obj/
 bin/
 .vscode/
 .vs/
-
-
-wwwroot/Uploads/txtUploads/*
-!wwwroot/Uploads/txtUploads/.gitkeep
-
-wwwroot/Uploads/UserUploads/*
-!wwwroot/Uploads/UserUploads/.gitkeep

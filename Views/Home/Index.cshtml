@@ -92,7 +92,7 @@
                 <textarea class="form-control col-12" id="patient-item-comment" cols="30" rows="2"></textarea>
             </div>
             <div class="form-group d-flex justify-content-between">
-                <button class="btn btn-warning col-5" id="comment-cancel">Cancel</button>
+                <button class="btn btn-danger col-5" id="comment-cancel">Cancel</button>
                 <button class="btn btn-success col-5" id="comment-add">Add</button>
             </div>
     </form>
@@ -198,21 +198,13 @@
             });
 
             clinicianFilterBtn.click(async function(){
-                @* var id = $(this).data("id");
-                await UploadConfirmation(id, true); *@
-
                 wardFilterBtn.removeClass("btn-success").addClass("btn-light");
                 wardSelectElement.attr("disabled", true);
                 $(this).removeClass("btn-light").addClass("btn-success");
                 currentFilter = "";
                 setPaginationDefaultOptions();
 
-                //alert("Query to get clinical patients");
-                 //alert(currentFilter);
-
                 await loadPatients();
-
-
 
             });
 
@@ -238,7 +230,17 @@
             $(commitAllDataBtnIdentifier).click(handleAllPatientsDataCommit);
 
             $(commentFormSelectors.commentCancel).click(function(evt){
-                evt.preventDefault();
+                evt.preventDefault();                
+                let patientId = parseInt($(commentFormSelectors.formPatientId).data("patient-id"));
+                let patientCommentItem = setupData.comments.find(x =>x.patientId == patientId);
+                patientName = $(this).closest(commentFormSelectors.commentDialog).find(`${commentFormSelectors.commentTitle} span`).text();
+                if(patientCommentItem){
+                    setupData.comments = setupData.comments.filter(x =>x.patientId !== patientId);
+                    //display notification
+                    appJS.displayWarning({ title: `Patient Comment`, message: `${patientName} comment removed`});
+                }
+
+                commentToggleDisplay(patientId, false);
                 $(commentFormSelectors.dialogCommentForm)[0].reset();
                 $(commentFormSelectors.commentDialog)[0].close();
             });
@@ -261,6 +263,7 @@
                 messageLabel = `Added comment for ${patientItem.lastName}, ${patientItem.firstName}`;
                 //console.log({ comments: setupData.comments });
                 appJS.displaySuccess({ message: messageLabel, title: "Doctor's Comment" }); 
+                commentToggleDisplay(targetComment.patientId, true);
 
                 $(commentFormSelectors.dialogCommentForm)[0].reset();
                 $(commentFormSelectors.commentDialog)[0].close();
@@ -339,16 +342,23 @@
 
             }
 
-            async function loadPatients(){
-                //appJS.appAlert(`currentFilter = ${currentFilter}`);
+            function getApiQueryParams(){
                 let wardId = null;
-                let { userId, dutyTypeId } = setupData.doctor;
+                let { userId } = setupData.doctor;
+                let duty = null;
                 if(currentFilter === 'Ward'){
                     let [ wardIdVal, text ] = appJS.getSelectedValueAndText(wardSelectElement)
-                    //appJS.appAlert(`Ward Selected = ${text} WardId = ${wardIdVal}`);
                     wardId = parseInt(wardIdVal);
-                    //console.log({ doctorId : setupData.doctor.userId, dutyTypeId: setupData.doctor.dutyTypeId, wardId: wardId });
+                    duty = setupData.dutyTypes.find(x =>x.name === 'Ward');
+                }else{
+                    duty = setupData.dutyTypes.find(x =>x.name !== "Ward");
                 }
+
+                return { userId, dutyTypeId: duty.dutyTypeId, wardId };
+            }
+
+            async function loadPatients(){
+                let { userId, dutyTypeId, wardId } = getApiQueryParams();
                 await getPatients(userId, dutyTypeId, wardId);
             }
 
@@ -582,6 +592,7 @@
                         });
 
                         await postPatientItemData(pPayloads);
+                        setAllCheckInput(false);
 
                      }else{
                         appJS.displayError({ message: `No Patient checkbox marked as Completed!`, title: messageLabel }); 
@@ -634,6 +645,10 @@
                 let patientId = parseInt(patientTrElem.data("patientid"));
                 let patientComment = setupData.patients.find(x => x.patientId === patientId);
                 let commentTitle = `Comment for <span class="text-danger fw-bold">${patientComment.lastName}, ${patientComment.firstName}</span>`;
+                let patientCommentItem = setupData.comments.find(x =>x.patientId == patientId);
+                if(patientCommentItem){
+                    $(commentFormSelectors.commentText).val(patientCommentItem.text);
+                }
 
                 $(commentFormSelectors.formPatientId).data("patient-id", patientId);
 
@@ -641,6 +656,19 @@
                 $(commentFormSelectors.commentDialog)[0].showModal();
 
 
+            }
+
+            function commentToggleDisplay(patientId, isAdd = false){
+                //let patientId = parseInt(patientTrElem.data("patientid"));
+                let trCommentBtn = $(`[data-patientid="${patientId}"] ${patientItemIdentifiers.comment}`)[0];
+                let targetElem = $(trCommentBtn);
+                if(isAdd){ 
+                    targetElem.text("Added Comment");
+                    targetElem.removeClass("btn-light").addClass("btn-comment")
+                }else{
+                    targetElem.text("Add Comment");
+                    targetElem.removeClass("btn-comment").addClass("btn-light");
+                }
             }
 
             function getPatientItemTrData(btnElem){
@@ -677,8 +705,21 @@
             async function postPatientItemData(postPayload){
                 messageLabel = `Submitting ${postPayload.length} Data`;
 
-                appJS.appAlert(postPayload);
-                return;
+                let { userId, dutyTypeId, wardId } = getApiQueryParams();
+
+                postPayload = postPayload.map(x =>{
+                   x.comment =  x.comment.trim() === '' ? null : x.comment.trim();
+                   x.exitTime = x.exitTime.trim() === ''? null : x.exitTime.trim();
+                   x.userId = userId;
+                   x.dutyTypeId = dutyTypeId;
+                   x.wardId = wardId;
+
+                   return x;
+                })
+
+                //console.log(postPayload.length);
+                //appJS.appAlert(postPayload);
+                //return;
 
                 var options = appJS.makeApiCallDefaultOption();
                 options.method = "POST";
@@ -692,9 +733,9 @@
                 appJS.setSpinnerPromise(false, 1000);
                 if(res.data.status){
                     let data = res.data.data;
-                    //console.log({ data });
-                    //setupData.patients = data ;
-                    //popuatePatientTable();
+
+                    appJS.displaySuccess({ title: "Store Patient", message: res.data.message });
+                    await loadPatients();
                 }
                 else {
                      appJS.displayError({ message: `Error ${messageLabel}`, title: messageLabel }); 
@@ -751,7 +792,6 @@
             }
 
             async function paginateHandler(){
-                //appJS.appAlert(pagePaginationState);               
                 await loadPatients();
             }
 
@@ -759,7 +799,12 @@
                 pagePaginationState = { ...defaultPagePaginationState };
             }
 
-            async function getPaginatedData(){
+            async function setAllCheckInput(isChecked){
+                let allCheckInput = $(allCheckInputIdentifier);
+                let allCheckInputValue = allCheckInput.prop("checked");
+                if(allCheckInputValue){
+                    allCheckInput.prop("checked", isChecked);
+                }
             }
 
 

@@ -21,6 +21,10 @@ body {
   margin-bottom: 60px;
 }
 
+:root{
+  --btn-comment-color: #d1fae5;
+  --btn-comment-bg: #10b981;
+}
 
 dialog {
   position: absolute;
@@ -62,6 +66,11 @@ dialog::backdrop{
   align-items: center;
 
   overflow: hidden;
+}
+
+.btn-comment {
+  background-color: var(--btn-comment-color);
+  color: var(--btn-comment-bg);
 }
 
 @keyframes spin {

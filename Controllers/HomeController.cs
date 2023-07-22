@@ -41,7 +41,7 @@ public class HomeController : Controller
     public async Task<IActionResult> GetDoctorsPatients(long DoctorId, long DutyTypeId, long? WardId,[FromQuery] int? page = 1)
     {
         var result = await _appDataService.GetPatients(DoctorId, DutyTypeId, page.Value!, WardId);
-        var data = JsonConvert.SerializeObject(result);
+        //var data = JsonConvert.SerializeObject(result);
         //_logger.LogInformation(data);
         return Json(new { Data = result });
     }
@@ -50,7 +50,7 @@ public class HomeController : Controller
     public async Task<IActionResult> CommitPatient([FromBody] IEnumerable<PatientCaseFileDTO> patientCaseFiles)
     {
         var result = await _appDataService.CommitPatients(patientCaseFiles);
-        var data = JsonConvert.SerializeObject(result);
+        //var data = JsonConvert.SerializeObject(result);
         //_logger.LogInformation(data);
         return Json(new { Data = result });
     }
