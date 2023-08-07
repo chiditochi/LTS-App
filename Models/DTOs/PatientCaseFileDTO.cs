@@ -9,6 +9,7 @@ public class PatientCaseFileDTO
     public long DutyTypeId { get; set; }
     public long? WardId { get; set; }
     public string? Comment { get; set; }
+    public DateTime StartDate { get; set; }
     public DateTime ReviewTime { get; set; }
     public DateTime? ExitTime { get; set; }
     public DateTime CreatedAt { get; set; }

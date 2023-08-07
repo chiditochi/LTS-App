@@ -34,13 +34,9 @@ const appJS = {
           choice.label +
           "</option>";
       }
-      if(typeof selectSelector === 'string'){
-        $(selectSelector).append(selectHTML);
-      }else {
-        $(selectSelector).append(selectHTML);
 
-      }
-
+      $(selectSelector).empty();
+      $(selectSelector).append(selectHTML);
 
     },
     setSpinner: function (display) {

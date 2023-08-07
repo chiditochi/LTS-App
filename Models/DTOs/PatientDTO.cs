@@ -8,6 +8,7 @@ public class PatientDTO
     public long? WardId { get; set; }
     public string? FirstName { get; set; }
     public string? LastName { get; set; }
+    public DateTime StartDate { get; set; }
     public DateTime CreatedAt { get; set; }
     public DateTime UpdatedAt { get; set; }
 }

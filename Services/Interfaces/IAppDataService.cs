@@ -16,6 +16,7 @@ public interface IAppDataService
     public Task<AppResult<SetupDataDTO>> GetSetupData();
     public Task<AppResult<PatientDTO>> GetPatients(long doctorsId, long dutyType, int page, long? wardId);
     public Task<AppResult<bool>> CommitPatients(IEnumerable<PatientCaseFileDTO> patientCasesFiles);
+    public Task<AppResult<bool>> CreatePatient(NewPatientDTO patient);
 
 
 }

@@ -13,7 +13,7 @@ public class AppDataService : IAppDataService
 {
     private readonly ILogger<AppDataService> _logger;
     private readonly IConfiguration _config;
-    private readonly AppDataContext _appDataContext;
+    private AppDataContext _appDataContext;
     private readonly int _seed;
     private readonly int _pageSize;
 
@@ -80,25 +80,6 @@ public class AppDataService : IAppDataService
     public Task<AppResult<ReviewOutcomeDTO>> GetReviewOutcomes()
     {
         var result = new AppResult<ReviewOutcomeDTO>();
-        // string[] outcomes = {
-        //     "No Issues",
-        //     "Requires Follow up",
-        //     "No Longer In LTS"
-        // };
-
-        // Randomizer.Seed = new Random(_seed);
-        // for (int i = 0; i < outcomes.Length; i++)
-        // {
-        //     var item = new Faker<ReviewOutcomeDTO>()
-        //                      .RuleFor(x => x.Text, t => outcomes[i])
-        //                      .RuleFor(x => x.ReviewOutcomeId, t => i + 1)
-        //                      .RuleFor(x => x.CreatedAt, t => t.Date.Past(2))
-        //                      .RuleFor(x => x.UpdatedAt, t => t.Date.Past(1));
-
-        //     result.Data.Add(item);
-
-        // }
-
         result.Data = _appDataContext.ReviewOutcomes.ToList();
         result.Status = true;
         //_logger.LogInformation(JsonConvert.SerializeObject(result.Data));
@@ -110,28 +91,6 @@ public class AppDataService : IAppDataService
     {
         var result = new AppResult<UserDTO>();
 
-        // var duties = await GetDutyTypes();
-        // var dutyRange = Enumerable.Range(1, duties.Data.Count).ToArray();
-        // var usertypes = await GetUserTypes();
-        //_logger.LogInformation(JsonConvert.SerializeObject(usertypes.Data));
-
-        // var usertypesRange = Enumerable.Range(1, usertypes.Data.Count).ToArray();
-
-        // Randomizer.Seed = new Random(_seed);
-        // for (int i = 0; i < 5; i++)
-        // {
-        //     var item = new Faker<UserDTO>()
-        //                      .RuleFor(x => x.UserId, t => ++i)
-        //                      .RuleFor(x => x.DutyTypeId, t => t.PickRandom(dutyRange))
-        //                      .RuleFor(x => x.UserTypeId, t => t.PickRandom(usertypesRange))
-        //                      .RuleFor(x => x.FirstName, t => t.Person.FirstName)
-        //                      .RuleFor(x => x.LastName, t => t.Person.LastName)
-        //                      .RuleFor(x => x.CreatedAt, t => t.Date.Past(2))
-        //                      .RuleFor(x => x.UpdatedAt, t => t.Date.Past(1));
-        //     result.Data.Add(item);
-
-        // }
-
         result.Data = _appDataContext.Users.ToList();
         //_logger.LogInformation(JsonConvert.SerializeObject(result.Data));
 
@@ -142,27 +101,6 @@ public class AppDataService : IAppDataService
     public Task<AppResult<UserTypeDTO>> GetUserTypes()
     {
         var result = new AppResult<UserTypeDTO>();
-        // result.Data = new List<UserTypeDTO>()
-        // {
-        //     new UserTypeDTO()
-        //     {
-        //         UserTypeId = 1,
-        //         Name = "Doctor",
-        //         Label = "Dr.",
-        //         CreatedAt = DateTime.Now,
-        //         UpdatedAt = DateTime.Now
-        //     },
-        //     new UserTypeDTO()
-        //     {
-        //         UserTypeId = 2,
-        //         Name = "Nurse",
-        //         Label = null,
-        //         CreatedAt = DateTime.Now,
-        //         UpdatedAt = DateTime.Now
-
-        //     }
-        // };
-
         result.Data = _appDataContext.UserTypes.ToList();
         //_logger.LogInformation(JsonConvert.SerializeObject(result.Data));
 
@@ -175,24 +113,11 @@ public class AppDataService : IAppDataService
     {
         var result = new AppResult<WardDTO>();
         Randomizer.Seed = new Random(_seed);
-        // for (int i = 0; i < 5; i++)
-        // {
-        //     var item = new Faker<WardDTO>()
-        //                      .RuleFor(x => x.WardId, t => ++i)
-        //                      .RuleFor(x => x.Name, t => t.Name.FullName())
-        //                      .RuleFor(x => x.CreatedAt, t => t.Date.Past(2))
-        //                      .RuleFor(x => x.UpdatedAt, t => t.Date.Past(1));
-        //     result.Data.Add(item);
-
-        // }
-
 
         result.Data = _appDataContext.Wards.ToList();
         // _logger.LogInformation(JsonConvert.SerializeObject(result.Data));
 
-
         result.Status = true;
-
         return Task.FromResult(result);
 
     }
@@ -237,29 +162,57 @@ public class AppDataService : IAppDataService
         {
             patientItem.CreatedAt = DateTime.Now;
             patientItem.UpdatedAt = DateTime.Now;
-            //if (
-            //    patientItem.Comment != null 
-            //    && !string.IsNullOrEmpty(patientItem.Comment) 
-            //    && patientItem.Comment.Trim() != ""
-            //)
-            //{
-            //    patientItem.Comment = patientItem.Comment.Trim();
-            //}
-            //else
-            //{
-            //    patientItem.Comment = null;
-            //}
-
             _patientCases.Add(patientItem);
 
         }
 
-        //_patientCases.AddRange(patientCasesFiles);
         result.Status = true;
         result.Message = $"Saved {patientCasesFiles.Count()} Patient Records";
         await Task.Delay(0);
         return result;
     }
+
+    public async Task<AppResult<bool>> CreatePatient(NewPatientDTO patient)
+    {
+        var result = new AppResult<bool>();
+        try
+        {
+            //add this new Patient to _appDataContext.Patient array 
+            var dto = new PatientDTO();
+            dto.FirstName = patient.FirstName;
+            dto.LastName = patient.LastName;
+            dto.CreatedAt = DateTime.Now;
+            dto.UpdatedAt = DateTime.Now;
+            dto.StartDate = patient.StartDate;
+            dto.DutyTypeId = patient.DutyTypeId;
+            dto.UserId = patient.UserId;
+            dto.WardId = patient.WardId == 0 ? null : patient.WardId;
+
+            var lastId = _appDataContext.Patients.Where(x => x.UserId == patient.UserId && x.DutyTypeId == patient.DutyTypeId && x.WardId == dto.WardId).Count();
+
+            dto.PatientId = ++lastId;
+            var patientList =  _appDataContext.Patients.ToList();
+            patientList.Add(dto);
+            _appDataContext.Patients = patientList;
+
+            //_logger.LogInformation(JsonConvert.SerializeObject(dto));
+
+            result.Status = true;
+            result.Message = $"User {patient.LastName}, {patient.FirstName} Created";
+            result.Data.Add(true);
+
+        }
+        catch (Exception ex)
+        {
+            result.Status = true;
+            result.Message = ex.Message;
+        }
+
+        return result;
+    }
+
+
+
 
 
 

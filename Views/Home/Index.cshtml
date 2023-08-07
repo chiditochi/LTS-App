@@ -5,6 +5,9 @@
 
 
 <div class="container min-vh-100">
+    @* <div class="row border py-2 px-4">
+        <button class="btn btn-success w-25 py-3" id="new-patient-btn">Add Patient</button>
+    </div> *@
     <div class="row border py-2">
         <div class="col d-flex justify-content-center align-items-center text-center">
             <div class="mx-md-4">Filter By:</div>
@@ -31,7 +34,9 @@
             </div>
         </div>
     </div>
-    <div class="row border py-2 px-4">
+    <div class="row border py-2 px-4 d-flex justify-content-between">
+        <button class="btn btn-success w-25 py-3" id="new-patient-btn">Add Patient</button>
+
         <button class="btn btn-warning w-25 py-3" id="commit-all-patient-data">Commit All</button>
     </div>
     <div class="row border py-2">
@@ -40,6 +45,7 @@
                 <tr>
                     <th class="text-danger">#</th>
                     <th class="">Patient</th>
+                    <th class="">Start Date</th>
                     <th class="">Review Time</th>
                     <th class="">Exit Time</th>
                     <th class="">Review Outcome</th>
@@ -96,7 +102,36 @@
                 <button class="btn btn-success col-5" id="comment-add">Add</button>
             </div>
     </form>
+</dialog>
 
+<dialog class="patient-dialog" id="patient-dialog">
+    <div class="row border-bottom border-1 border-success mx-3 py-2">
+        <div class="lead" id="patient-dialog-title">Add Patient</div>
+    </div>
+    <div class="row border-bottom border-1 border-success mx-3 py-2 d-none" id="patient-dialog-error">
+        <div class="text-danger app-bg-danger" id="patient-dialog-error-label"></div>
+    </div>
+    <form id="new-patient-form" class="row p-3" >
+            <div class="form-group mb-3">
+                <input type="date" class="form-control col-12" id="patient-startdate" placeholder="Enter Start Date">
+            </div>
+            <div class="form-group mb-3">
+                <input type="text" class="form-control col-12" id="patient-firstName" placeholder="Enter FirstName">
+            </div>
+            <div class="form-group mb-3">
+                <input type="text" class="form-control col-12" id="patient-lastName" placeholder="Enter LastName">
+            </div>
+            <div class="form-group mb-3">
+                <select class="form-control col-12" id="patient-doctor-dutyid"></select>
+            </div>
+            <div class="form-group mb-3">
+                <select class="form-control col-12" id="patient-ward-id"></select>
+            </div>
+            <div class="form-group d-flex justify-content-between" style="column-gap: 1.5em;">
+                <button class="btn btn-danger col py-3" id="patient-cancel">Cancel</button>
+                <button class="btn btn-success col py-3" id="patient-add">Add</button>
+            </div>
+    </form>
 </dialog>
 
 
@@ -169,6 +204,39 @@
                 pageSize: 0,
                 prevPage: false,
                 nextPage: false
+            };
+
+            let newPatient = {
+                btn: "#new-patient-btn",
+                dialog: "#patient-dialog",
+                title: "#patient-dialog-title",
+                error: {
+                    div: "#patient-dialog-error",
+                    label: "#patient-dialog-error-label"
+                },
+                form: {
+                    name: "#new-patient-form",
+                    startDate: "#patient-startdate",
+                    firstName: "#patient-firstName",
+                    lastName: "#patient-lastName",
+                    dutySelect: "#patient-doctor-dutyid",
+                    wardSelect: "#patient-ward-id",
+                    cancelBtn: "#patient-cancel",
+                    submitBtn: "#patient-add"
+                },
+                dto: {
+                    requiredProps: [
+                    "startDate", "firstName", "lastName", "userId", "dutyTypeId"],
+                    formData: {
+                        startDate: "",
+                        firstName: "",
+                        lastName: "",
+                        userId: "",
+                        dutyTypeId: "",
+                        wardId: null
+                    }
+                }
+                
             };
 
             let shouldShowPagination = false;
@@ -314,6 +382,12 @@
 
             });
 
+            $(newPatient.btn).click(function(){
+                setupNewPatientData();
+                $(newPatient.dialog)[0].showModal();
+                //alert("hi")
+            });
+
 
 
             /* implementations */
@@ -435,6 +509,7 @@
                         <tr class="align-middle patient-item" data-patientid="${patient.patientId}">
                             <td class="text-danger">${index + 1}</td>
                             <td>${patient.lastName}, ${patient.firstName}</td>
+                            <td>${appJS.formatDate(patient.startDate)}</td>
                             <td>
                                 <input type="date" class="form-control patient-item-review-time" value="${currentDate}">
                             </td>
@@ -466,7 +541,7 @@
 
                     tableBody = `
                     <tr>
-                        <td colspan="8" class="lead text-danger text-center" style="font-size:2rem;">No Patient(s)</td>
+                        <td colspan="9" class="lead text-danger text-center" style="font-size:2rem;">No Patient(s)</td>
                     </tr>`;
 
                 }
@@ -806,6 +881,184 @@
                     allCheckInput.prop("checked", isChecked);
                 }
             }
+
+            /*  Add New Patient Section  */
+            $(`${newPatient.form.name} ${newPatient.form.cancelBtn}`).click(function(evt){
+                evt.preventDefault();                
+                @* let patientId = parseInt($(commentFormSelectors.formPatientId).data("patient-id"));
+                let patientCommentItem = setupData.comments.find(x =>x.patientId == patientId);
+                patientName = $(this).closest(commentFormSelectors.commentDialog).find(`${commentFormSelectors.commentTitle} span`).text();
+                if(patientCommentItem){
+                    setupData.comments = setupData.comments.filter(x =>x.patientId !== patientId);
+                    //display notification
+                    appJS.displayWarning({ title: `Patient Comment`, message: `${patientName} comment removed`});
+                }
+ *@
+                //commentToggleDisplay(patientId, false);
+                displayNewPatientError("", false);
+                $(`${newPatient.form.name}`)[0].reset();
+                $(`${newPatient.dialog}`)[0].close();
+            });
+
+            $(`${newPatient.form.name} ${newPatient.form.submitBtn}`).click(async function(evt){
+                evt.preventDefault();
+                displayNewPatientError("", false);
+
+                /*
+                    1. validate form data 
+                        - lastName is not empty or null 
+                        - firstName is not empty or null 
+                        - dutyId is selected
+                        - startDate is required
+                        - ward is optional 
+                            - if duty is clinician, ward is empty 
+                            - if duty is Ward, ward selection is required
+                */
+                let messageLabel = `Submit New Patient`;
+                let newPatientData = getNewPatientData();
+                let [isValid, errorMessage] = validateNewPatientData({ ...newPatientData });
+                if(!isValid){
+                    //$(`${newPatient.form.name}`)[0].reset();
+                    //$(`${newPatient.dialog}`)[0].close();
+                    //appJS.displayError({ message: errorMessage, title: messageLabel});
+                    displayNewPatientError(errorMessage);
+                    return;
+                }
+                //post data 
+                await postCreatePatient(newPatientData, messageLabel);
+            });
+
+            function displayNewPatientError(errorMsg, display=true){
+                $(`${newPatient.error.label}`).html(errorMsg);
+                (display) ?
+                $(`${newPatient.error.div}`).removeClass("d-none") :
+                $(`${newPatient.error.div}`).addClass("d-none");
+
+            }
+
+            function getNewPatientData(){
+                let startDate = $(`${newPatient.form.name} ${newPatient.form.startDate}`).val();
+                let firstName = $(`${newPatient.form.name} ${newPatient.form.firstName}`).val();
+                let lastName = $(`${newPatient.form.name} ${newPatient.form.lastName}`).val();
+
+                let dutyTypeId = appJS.getSelectedOption(`${newPatient.form.name} ${newPatient.form.dutySelect}`);
+                let wardId = appJS.getSelectedOption(`${newPatient.form.name} ${newPatient.form.wardSelect}`);
+
+                let formData = { ...newPatient.dto.formData };
+                formData.firstName = firstName;
+                formData.lastName = lastName;
+                formData.startDate = startDate;
+                formData.userId = parseInt(setupData.doctor.userId);
+                formData.dutyTypeId = parseInt(dutyTypeId);
+                formData.wardId = parseInt(wardId);
+
+                return formData;
+
+            }
+
+            function validateNewPatientData(newPatientData){
+                let isValid = true;
+                let errorMessage = "";
+                let errorList = [];
+                let wardDuty = setupData.dutyTypes.find(x =>x.name === 'Ward');
+                let wardDutyId = parseInt(wardDuty.dutyTypeId);
+
+                let requiredProps = newPatient.dto.requiredProps;
+                requiredProps.map(item =>{
+                    var d = newPatientData[item];
+                    if(d === null || d === undefined || !d.toString().trim().length) errorList.push(item);
+                    if(item.endsWith("Id") && d === 0) errorList.push(item)
+                });
+
+                if(newPatientData.dutyTypeId === wardDutyId){
+                    //wardId is then required
+                   let formDataWardId =  newPatientData.wardId;
+                   if(formDataWardId === 0) errorList.push("ward");
+
+                }
+
+                if(errorList.length){
+                    isValid = false;
+                    errorMessage = `The following are required:<ul>`;
+                    errorList = [...new Set(errorList)];
+                    errorList.map(err => {
+                        if(err.endsWith("Id")) err = err.replace("Id", "");
+                        let text = err[0].toUpperCase() + err.slice(1);
+                        errorMessage += `<li>${text}</li>`;
+                    })
+                    errorMessage += "</ul>";
+                }
+
+                return [isValid, errorMessage];
+            }
+
+            async function postCreatePatient(postPayload, title){
+                messageLabel = title;
+
+                //appJS.appAlert(postPayload);
+                //return;
+
+                var options = appJS.makeApiCallDefaultOption();
+                options.method = "POST";
+                options.body = JSON.stringify(postPayload);
+
+                await appJS.setSpinnerPromise(true);
+                var url = '@Url.Action("CreatePatient", "Home")';
+                //console.log({ url});
+                var res = await appJS.makeApiCall(url, options);
+
+                appJS.setSpinnerPromise(false, 1000);
+                if(res.data.status){
+                    let data = res.data.data;
+                    $(`${newPatient.form.name}`)[0].reset();
+                    $(`${newPatient.dialog}`)[0].close();
+                    appJS.displaySuccess({ title: messageLabel, message: res.data.message });
+                    
+                }
+                else {
+                    displayNewPatientError(res.data.message);
+                    //appJS.displayError({ message: `Error ${res.data.message}`, title: messageLabel }); 
+
+                }
+
+            }
+
+            function setupNewPatientData(){
+                setupNewPatientDoctor();
+                setDefaultStartDate();
+                setupDutyOptions();
+                setupWardOptions();
+            }
+
+            function setupNewPatientDoctor(){
+                let doctor = setupData.doctor;
+                var title = `Add Patient to Doctor <span class="bg-light text-danger fw-bold">${doctor.lastName}, ${doctor.firstName}</span>`;
+
+                let dialogTitle = `${newPatient.dialog} ${newPatient.title}`;
+                $(dialogTitle).html(title);
+            }
+
+            function setDefaultStartDate(){
+                let startDateCss = `${newPatient.form.name} ${newPatient.form.startDate}`;
+                let today = appJS.getDisplayDate(new Date(), false);
+                //console.log({ startDateCss, today})
+                $(startDateCss).val(today);
+            }
+
+            function setupDutyOptions(){
+
+                let dataChoices = setupData.dutyTypes.map(item =>({ label: item.name, labelValue: item.dutyTypeId }));
+                let selectSelector = `${newPatient.form.name} ${newPatient.form.dutySelect}`;
+                appJS.populateSelect(dataChoices, selectSelector, "Select a DutyType" );
+            }
+
+            function setupWardOptions(){
+
+                let dataChoices = setupData.wards.map(item =>({ label: item.name, labelValue: item.wardId }));
+                let selectSelector = `${newPatient.form.name} ${newPatient.form.wardSelect}`;
+                appJS.populateSelect(dataChoices, selectSelector, "Select a Ward" );
+            }
+
 
 
         });

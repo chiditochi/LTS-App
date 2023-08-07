@@ -24,6 +24,7 @@ body {
 :root{
   --btn-comment-color: #d1fae5;
   --btn-comment-bg: #10b981;
+  --bg-danger: #fee2e2;
 }
 
 dialog {
@@ -31,6 +32,8 @@ dialog {
   inset: 0;
   border: 0;
   box-shadow: 0 0 1em .1em rgba(0,128,0,.5);
+  max-width: 70ch;
+
 
 }
 
@@ -72,6 +75,11 @@ dialog::backdrop{
   background-color: var(--btn-comment-color);
   color: var(--btn-comment-bg);
 }
+
+.app-bg-danger {
+  background: var(--bg-danger);
+}
+
 
 @keyframes spin {
   0% {

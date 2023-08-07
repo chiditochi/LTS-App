@@ -55,6 +55,13 @@ public class HomeController : Controller
         return Json(new { Data = result });
     }
 
+    [HttpPost("/Home/CreatePatient")]
+    public async Task<IActionResult> CreatePatient([FromBody] NewPatientDTO patient)
+    {
+        var result = await _appDataService.CreatePatient(patient);
+        return Json(new { Data = result });
+    }
+
     [ResponseCache(Duration = 0, Location = ResponseCacheLocation.None, NoStore = true)]
     public IActionResult Error()
     {
