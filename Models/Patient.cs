@@ -2,12 +2,17 @@ using System.ComponentModel.DataAnnotations;
 
 namespace Long_Term_Segregation.Models.DTOs;
 
-public class PatientDTO
+public class Patient
 {
+    public Patient()
+    {
+        UpdatedAt = DateTime.Now;
+        CreatedAt = DateTime.Now;
+    }
     [Key]
     public long PatientId { get; set; }
     public long DutyTypeId { get; set; }
-    public long UserId { get; set; }
+    public long PatRCId { get; set; }
     public long? WardId { get; set; }
     public string? FirstName { get; set; }
     public string? LastName { get; set; }

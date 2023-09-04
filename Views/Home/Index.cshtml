@@ -154,6 +154,7 @@
             const patientItemIdentifiers = { 
                 tr: ".patient-item",
                 reviewTime: ".patient-item-review-time",
+                startTime: ".patient-item-start-time",
                 exitTime: ".patient-item-exit-time",
                 reviewOutcome: ".review-outcome",
                 comment: ".patient-item-comment",
@@ -167,6 +168,7 @@
                 comment: "",
                 reviewTime: null,
                 exitTime: null,
+                startDate: null
             };
 
             const commentFormSelectors = {
@@ -405,7 +407,7 @@
                 if(res.data.status){
                     setupData = {...res.data.data[0], patients: [], comments: []};
                     //await getPatients(1, 1, 1);
-                    console.log({ setupData });
+                    //console.log({ setupData });
                     populateSetupData();
                     await loadPatients();
                 }
@@ -483,7 +485,7 @@
                 if(res.data.status){
                     let data = res.data.data;
                     
-                    console.log({ data, page: res.data });
+                    //console.log({ data, page: res.data });
                     setupPagination(res.data)
                     setupData.patients = data ;
                     popuatePatientTable();
@@ -509,7 +511,7 @@
                         <tr class="align-middle patient-item" data-patientid="${patient.patientId}">
                             <td class="text-danger">${index + 1}</td>
                             <td>${patient.lastName}, ${patient.firstName}</td>
-                            <td>${appJS.formatDate(patient.startDate)}</td>
+                            <td class="patient-item-start-time">${appJS.formatDate(patient.startDate)}</td>
                             <td>
                                 <input type="date" class="form-control patient-item-review-time" value="${currentDate}">
                             </td>
@@ -758,6 +760,9 @@
                 let pReviewTimeInput = btnTrParent.find(patientItemIdentifiers.reviewTime);
                 trData.reviewTime = pReviewTimeInput.val();
 
+                let pStartDateInput = btnTrParent.find(patientItemIdentifiers.startTime);
+                trData.startDate = pStartDateInput.text();
+
                 let pExitTimeInput = btnTrParent.find(patientItemIdentifiers.exitTime);
                 trData.exitTime = pExitTimeInput.val();
 
@@ -784,6 +789,7 @@
 
                 postPayload = postPayload.map(x =>{
                    x.comment =  x.comment.trim() === '' ? null : x.comment.trim();
+                   x.startDate = x.startDate.trim() === ''? null : x.startDate.trim();
                    x.exitTime = x.exitTime.trim() === ''? null : x.exitTime.trim();
                    x.userId = userId;
                    x.dutyTypeId = dutyTypeId;

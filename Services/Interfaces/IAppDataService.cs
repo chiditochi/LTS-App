@@ -19,4 +19,8 @@ public interface IAppDataService
     public Task<AppResult<bool>> CreatePatient(NewPatientDTO patient);
 
 
+    //public Task<AppResult<bool>> SeedPatient();
+
+
+
 }

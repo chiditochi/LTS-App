@@ -13,6 +13,23 @@ Clinician			Nurse			UpdatedAt	UpdatedAt
 
 
 ### Todos
+	- 1. persist the selected patientCaseFile data to the database
+	- 2. call external api to create new patient
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 	- add a db.json file 
 		- dutyType
 
@@ -35,3 +52,13 @@ var jsonFilePath = Path.Combine(_wenv.ContentRootPath, "data.json");
 string jsonFile = File.ReadAllText(jsonFilePath);
 TestData jsonData = JsonConvert.DeserializeObject<TestData>(jsonFile)!;
 
+
+
+------------------ Api --------------------
+1. setupData 
+	a. dutyTypesResult
+	b. wardsResult
+	c. doctorResult
+	d. reviewOutcomes
+
+2. create patient 

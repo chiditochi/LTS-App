@@ -23,8 +23,9 @@ public class HomeController : Controller
 
     [HttpGet("/")]
     [HttpGet("/Home/Index")]
-    public IActionResult Index()
+    public async Task<IActionResult> Index()
     {
+        //await _appDataService.SeedPatient();
         return View();
     }
 
